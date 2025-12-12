@@ -294,9 +294,8 @@ function App() {
     
     setData(formattedData);
     setFileName(name);
-    // 預設展開第一層
-    const rootIds = new Set(formattedData.filter(d => d.level === 0).map(d => d.id));
-    setExpandedIds(rootIds);
+    // 預設全收合 (不展開任何節點)
+    setExpandedIds(new Set());
   };
 
   const toggleNode = (id) => {
@@ -355,14 +354,7 @@ function App() {
         path = path.replace(/^\/?Pip[^\/]+\//, ''); // 移除 /PipXXXX/
         path = path.replace(/\[\d*\]/g, ""); // 移除 [0]
 
-        // 2. 特殊規則處理: WorkInProcess 自動補上 Choice
-        // 只有當路徑中有 WorkInProcessReport/WorkInProcess 且後面沒有接 Choice 時才插入
-        if (path.includes('WorkInProcessReport/WorkInProcess') && !path.includes('WorkInProcessReport/WorkInProcess/Choice')) {
-            path = path.replace('WorkInProcessReport/WorkInProcess', 'WorkInProcessReport/WorkInProcess/Choice');
-            console.log("Path modified (Choice added):", path);
-        }
-
-        // 3. 清理前後斜線
+        // 2. 清理前後斜線
         if (path.startsWith('/')) path = path.substring(1);
         if (path.endsWith('/')) path = path.substring(0, path.length - 1);
 
@@ -410,8 +402,33 @@ function App() {
                     continue;
                 }
             }
+
+            // 策略 3: 自動嘗試插入 Choice 層級 (遞迴修正)
+            // 如果當前 segment 找不到，但它是 WorkInProcess 等特殊路徑的一部分
+            // 我們檢查子節點中是否有 "Choice" 節點，如果有，嘗試進入 Choice 再找一次 segment
+            if (!foundMatch) {
+                const choiceNode = children.find(c => c.name === 'Choice' || c.name === '(Choice)');
+                if (choiceNode) {
+                    // 暫時展開 Choice 節點
+                    const choiceChildren = data.filter(d => d.parentId === choiceNode.id);
+                    // 在 Choice 的子節點中尋找當前的 segment
+                    const matchInChoice = choiceChildren.find(c => c.name.toLowerCase() === segment.toLowerCase() || c.name.includes(segment));
+                    
+                    if (matchInChoice) {
+                        console.log(`Auto-resolved Choice path at segment: ${segment}`);
+                        newExpanded.add(choiceNode.id); // 展開 Choice
+                        newExpanded.add(matchInChoice.id); // 展開目標
+                        
+                        currentParentId = matchInChoice.id;
+                        matchedNodeId = matchInChoice.id;
+                        i += 1;
+                        foundMatch = true;
+                        continue;
+                    }
+                }
+            }
             
-            // 如果這層找不到，就停止
+            // 如果這層真的找不到，就停止
             if (!foundMatch) {
               console.log(`Search stopped at segment: ${segment}, ParentID: ${currentParentId}`);
               break; 
@@ -514,7 +531,8 @@ function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight">Spec Viewer</h1>
-                <span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-1 max-w-[200px] truncate" title={fileName}>
+                {/* 移除截斷樣式 */}
+                <span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-1" title={fileName}>
                   <FileText className="w-3 h-3" /> {fileName}
                 </span>
               </div>
@@ -522,26 +540,27 @@ function App() {
                 {visibleItems.length} items visible / {data.length} total
               </p>
             </div>
-            
-            <div className="flex items-center gap-2 w-full md:w-auto">
-               <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="搜尋關鍵字或路徑 (支援自動補全 Choice)"
-                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-700 border-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+          </div>
+
+          {/* Search Box - Independent Row */}
+          <div className="mb-4">
+             <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="搜尋關鍵字或路徑 (支援自動補全 Choice)"
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-700 border-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
