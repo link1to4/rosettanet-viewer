@@ -532,8 +532,12 @@ function App() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight">Spec Viewer</h1>
                 {/* 移除截斷樣式 */}
-                <span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-1" title={fileName}>
-                  <FileText className="w-3 h-3" /> {fileName}
+                <span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-2" title={fileName}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="w-5 h-5">
+                    <rect x="0" y="0" width="64" height="64" rx="12" fill="#005b96"/>
+                    <text x="50%" y="53%" fontFamily="monospace" fontWeight="bold" fontSize="36" fill="white" textAnchor="middle" dominantBaseline="central">{'</>'}</text>
+                  </svg>
+                  {fileName}
                 </span>
               </div>
               <p className="text-slate-400 text-sm mt-1">
