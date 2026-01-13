@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronDown, Search, X, Layers, Maximize2, Minimize2, Upload, FileText, AlertCircle, CheckCircle2, Save, RefreshCw, Loader2 } from 'lucide-react';
-import { getFiles, getFile, saveFile } from './services/gas';
+import { getFiles, getFile, saveFile } from './services/firebase';
 
 // --- 解析邏輯 ---
 
@@ -638,25 +638,54 @@ function App() {
         {/* Header */}
         <div className="bg-slate-800 p-6 text-white shrink-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight"><span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-2" title={fileName}>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <span className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300 flex items-center gap-2" title={fileName}>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="w-5 h-5">
                     <rect x="0" y="0" width="64" height="64" rx="12" fill="#005b96" />
                     <text x="50%" y="53%" fontFamily="monospace" fontWeight="bold" fontSize="36" fill="white" textAnchor="middle" dominantBaseline="central">{'</>'}</text>
                   </svg>
                   {fileName}
-                </span></h1>
-                {/* 移除截斷樣式 */}
+                </span>
+              </h1>
 
+              {/* Cloud Controls - Inline with title */}
+              <div className="flex items-center gap-2">
+                <select
+                  className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 max-w-[200px]"
+                  onChange={handleGasFileSelect}
+                  value={selectedFile}
+                >
+                  <option value="">-- Load from Cloud --</option>
+                  {fileList.map(f => (
+                    <option key={f.name} value={f.name}>{f.name}</option>
+                  ))}
+                </select>
+                <button onClick={fetchFileList} className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded text-slate-300 transition-colors" title="Reload List">
+                  <RefreshCw className={`w-4 h-4 ${isLoadingList ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={handleSaveToGas}
+                  disabled={isSaving || !rawFileContent}
+                  className={`p-1.5 rounded transition-colors
+                    ${isSaving || !rawFileContent
+                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    }
+                  `}
+                  title={isSaving ? "Saving..." : "Save to Cloud"}
+                >
+                  <Save className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-slate-400 text-sm mt-1">
-                {visibleItems.length} items visible / {data.length} total
-              </p>
             </div>
+
+            <p className="text-slate-400 text-sm">
+              {visibleItems.length} items visible / {data.length} total
+            </p>
           </div>
 
-          {/* Search Box - Independent Row */}
+          {/* Search Box */}
           <div className="mb-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
@@ -675,35 +704,6 @@ function App() {
                   <X className="h-4 w-4" />
                 </button>
               )}
-            </div>
-          </div>
-
-          {/* GAS Loading / Saving Controls */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4 bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-            <div className="flex-1">
-              <GasFileSelector
-                fileList={fileList}
-                selectedFile={selectedFile}
-                onSelect={handleGasFileSelect}
-                onRefresh={fetchFileList}
-                isLoading={isLoadingList}
-              />
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={handleSaveToGas}
-                disabled={isSaving || !rawFileContent}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded text-sm font-medium transition-colors shadow-sm
-                    ${isSaving || !rawFileContent
-                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
-                  }
-                  `}
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? "Saving..." : "Save to Cloud"}
-              </button>
             </div>
           </div>
 
